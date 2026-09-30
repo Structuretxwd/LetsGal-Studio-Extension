@@ -1,0 +1,7 @@
+node_modules
+sdk
+*.log
+.DS_Store
+
+# dist 是扩展的运行产物，随仓库提交：下载后可直接导入 Studio，无需本地构建。
+# sdk 是 Studio 同步出来的接口副本，由使用者自行同步，不入库。
