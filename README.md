@@ -1,48 +1,260 @@
+<div align="center">
+
 # online-update
 
-统计在线人数与总玩家数，检查游戏版本更新，展示公告、更新日志与下载入口。
+**在游戏内检查版本更新，展示公告、更新日志与下载入口**
+
+[![Studio SDK](https://img.shields.io/badge/Studio%20SDK-%5E2.0.0-6E56CF?style=flat-square)](https://docs.avg-engine.com/extensions/intro)
+[![版本](https://img.shields.io/badge/version-0.1.0-7E9650?style=flat-square)](./extension.json)
+[![扩展 ID](https://img.shields.io/badge/extension%20id-online--update--58685e-E5675A?style=flat-square)](./extension.json)
+[![数据源](https://img.shields.io/badge/data-GitHub%20Releases-1A1A1A?style=flat-square)](#数据来源release-怎么写)
+[![后端](https://img.shields.io/badge/backend-%E6%97%A0-57564F?style=flat-square)](#在线统计预留)
+
+</div>
 
 ---
 
-> 这是一个 AVG+ Light Engine **扩展**。
-> 一个类同时承担 UI、可调用方法、存档字段、项目设置 —— 用统一基类 `Extension`。
-> 它通过 React 组件渲染到游戏舞台,可以读取宿主提供的角色 / 对话 / 变量等数据。
+玩家不会主动去翻你的发布页。把「有新版本了」这件事直接送到游戏里，是成本最低的做法。
+
+`online-update` 把更新检查做进游戏本身：引擎一启动就静默比对一次版本，发现有新版就在游戏内弹出面板，玩家点一下就能去下载。更新数据放在 GitHub Releases 里，**不需要自建任何服务器**。
+
+## 目录
+
+- [能力一览](#能力一览)
+- [工作流程](#工作流程)
+- [快速开始](#快速开始)
+- [配置项](#配置项)
+- [数据来源：Release 怎么写](#数据来源release-怎么写)
+- [在线统计（预留）](#在线统计预留)
+- [剧本与快捷键](#剧本与快捷键)
+- [目录结构](#目录结构)
+- [本地开发](#本地开发)
+- [已知限制](#已知限制)
+
+## 能力一览
+
+| 能力 | 说明 |
+|---|---|
+| 启动期静默检查 | 引擎启动时读一次 GitHub Releases，与当前版本比较，有新版才动作 |
+| 游戏内更新面板 | 展示版本对比、公告、更新日志，以及跳转下载入口 |
+| 全局快捷键 | 默认 `KeyU`，引擎启动期注册，不用走剧本 |
+| 零后端 | 数据直接读 GitHub Releases，无需服务器、数据库或域名 |
+| 随作品分发 | 配置存于项目内，随游戏一起打包，玩家不需要做任何设置 |
+
+### 面板结构
+
+```mermaid
+flowchart TB
+    T["更新与在线"]
+    T --> S["① 统计卡组 · 当前在线 / 累计玩家"]
+    S --> V["② 版本卡 · 当前版本 → 最新版本 + 状态"]
+    V --> A["③ 公告 + 更新日志"]
+    A --> F["④ 底部操作条 · 前往下载 · 同步时间 · 刷新"]
+```
+
+| 区块 | 内容 |
+|---|---|
+| ① 统计卡组 | 「当前在线」「累计玩家」。需要自建统计服务，未配置时显示 `—`，见[在线统计（预留）](#在线统计预留) |
+| ② 版本卡 | `当前版本` → `最新版本`，状态在「检查中…」「有新版本」「已是最新」之间切换 |
+| ③ 公告与日志 | 公告取 Release 标题；更新日志按版本倒序列出，最新一版带「最新」徽标 |
+| ④ 底部操作条 | 「前往下载新版本」按钮；右侧显示「同步于 12:34:56」与「刷新」按钮 |
+
+## 工作流程
+
+### 启动时：静默检查
+
+```mermaid
+flowchart TD
+    A["引擎启动"] --> B["对每个模块调用 static onRegister"]
+    B --> C["注册全局快捷键 KeyU"]
+    B --> D{"checkOnLaunch 开启？"}
+    D -->|否| Z["结束，不发起网络请求"]
+    D -->|是| E{"releasesRepo 已配置？"}
+    E -->|否| Z
+    E -->|是| F["请求 GitHub Releases API"]
+    F --> G["过滤掉 draft 与 prerelease"]
+    G --> H["首条的 tag 即最新版本"]
+    H --> I{"比 currentVersion 新？"}
+    I -->|否| Z
+    I -->|是| J["写入扩展日志"]
+    J --> K{"autoOpenOnUpdate 开启？"}
+    K -->|否| Z
+    K -->|是| L["自动打开面板"]
+```
+
+### 打开面板时：取数与渲染
+
+```mermaid
+sequenceDiagram
+    participant P as 玩家
+    participant E as 扩展面板
+    participant G as GitHub Releases API
+    participant S as 统计服务（可选）
+
+    P->>E: 按 KeyU 或启动自动弹出
+    E->>E: 读取设置（releasesRepo / currentVersion）
+    E->>G: GET /repos/owner/repo/releases
+    G-->>E: Release 列表（JSON）
+    E->>E: 拆出公告、更新日志、下载链接
+    E->>S: POST /heartbeat（仅在配置了 statsEndpoint 时）
+    S-->>E: 在线人数 / 累计玩家
+    E-->>P: 渲染统计卡、版本卡、公告与更新日志
+    P->>E: 点击「前往下载新版本」
+    E->>P: 在浏览器打开该 Release 页面
+```
+
+## 快速开始
+
+### 1. 导入扩展
+
+在 Studio 打开 **个性化 → 项目设置**，在左侧扩展树顶部点「导入扩展」，选择本目录或 `.zip` 压缩包（也可以直接把文件夹拖进扩展树）。
+
+本仓库已经把 `dist/index.js` 一起提交，**导入后即可使用，不需要先 `npm install`**。
+
+### 2. 准备一个发布 Release 的公开仓库
+
+新建（或复用一个）**公开**仓库，专门用来发布版本。仓库里不需要放任何代码，能打 Release 即可。
+
+### 3. 在 Studio 里填设置
+
+在扩展树中选中 **online-update-58685e → 程序 → 更新与在线**，然后在设置面板里填写下面的字段。至少需要填「GitHub 仓库」。
+
+### 4. 验证
+
+把「当前游戏版本」填成一个比最新 Release 更小的值，重新运行预览，面板应当自动弹出。
+
+如果没有弹出，先看这个扩展的**扩展日志**。一次正常的检查会打印：
+
+```
+[online-update] 发现新版本 0.2.0（当前 0.1.0）
+```
+
+日志里没有这一行，就从[配置项](#配置项)逐条检查——绝大多数情况是仓库标识写错，或者根本没有正式 Release。
+
+## 配置项
+
+| 设置项 | 类型 | 默认值 | 说明 |
+|---|---|---|---|
+| GitHub 仓库（owner/repo） | 字符串 | 空 | 发布 Release 的公开仓库。接受 `owner/repo`、`https://github.com/owner/repo`、带 `.git` 后缀三种写法。**留空则不检查更新** |
+| 当前游戏版本 | 字符串 | `0.1.0` | 本作品当前发布的版本号，用来和最新 Release 的 tag 比较。`v` 前缀可省略 |
+| 启动时自动检查更新 | 布尔 | 开启 | 关闭后只在玩家手动打开面板时读取 |
+| 发现新版本时自动打开面板 | 布尔 | 开启 | 仅在「启动时自动检查更新」开启时可用 |
+| 在线统计服务地址 | 字符串 | 空 | 预留给自建统计服务。留空则两张统计卡显示 `—` |
+| 心跳与刷新间隔（秒） | 数字 | `60` | 取值范围 15–600。面板打开期间的上报与刷新间隔 |
+
+> 这些设置随作品打包。玩家拿到的游戏里已经带好配置，玩家侧不需要做任何填写。
+
+## 数据来源：Release 怎么写
+
+扩展只读 GitHub 官方的 Release 数据，字段映射关系如下：
+
+| Release 字段 | 出现在面板的位置 | 说明 |
+|---|---|---|
+| `tag_name` | 版本号 | `v1.2.0` 与 `1.2.0` 等价 |
+| `name` | 公告 | 与 tag 完全相同时不显示，避免标题和版本号重复出现 |
+| `body` | 更新日志 | 按行拆条，自动去掉 `#`、`-`、`*`、`1.` 等 Markdown 前缀 |
+| `published_at` | 更新日志的日期 | 只取到天 |
+| `html_url` | 「前往下载」按钮 | 指向该 Release 页面 |
+
+边界行为：
+
+- **草稿（draft）和预发布（prerelease）会被跳过**，不会提示玩家更新
+- 一次最多取最近 **10** 个 Release 作为更新历史，每个版本最多列出 **20** 条变更
+- 某条 Release 正文为空时，日志里显示「（该版本未填写更新说明）」
+- 仓库里一个正式 Release 都没有时会报错，面板显示「更新信息读取失败」
+- 面板中的「当前版本」优先取设置里的值；该值为空时回退到 `0.1.0`
+
+### 一条 Release 的推荐写法
+
+- **Tag**：填版本号，例如 `v0.2.0`
+- **Title**：写一句话公告，例如「第二章上线」
+- **Description**：写更新日志正文
+
+```markdown
+## 新增
+- 第二章剧本，约 40 分钟流程
+- 鉴赏模式支持按角色筛选
+
+## 修复
+- 修复读档后 BGM 不恢复的问题
+```
+
+面板会把这些渲染成一行一条的列表，`##` 标题也会作为普通文本保留。
+
+## 在线统计（预留）
+
+面板顶部的两张统计卡需要一个自建的统计服务，当前项目**没有提供可用后端**，`statsEndpoint` 留空时它们显示 `—`，这是预期行为。
+
+如果你日后自建服务，扩展约定的接口是：
+
+| 方法 | 路径 | 请求体 | 期望响应 |
+|---|---|---|---|
+| `GET` | `{statsEndpoint}/stats` | — | `{ "online": 12, "total": 340 }` |
+| `POST` | `{statsEndpoint}/heartbeat` | `{ "playerId": "…" }` | 任意成功响应 |
+
+几个已实现的行为：
+
+- 面板**打开期间**才按间隔上报心跳，面板关闭即停止
+- 玩家标识 `playerId` 在首次打开面板时随机生成，以 `shared` 作用域持久化，跨存档保持不变
+- 统计读取失败不会影响更新功能，只在面板里显示一条警告
+
+## 剧本与快捷键
+
+### 快捷键
+
+`KeyU` 在引擎启动期通过 `static onRegister` 注册，属于全局快捷键，**不依赖剧本**，游戏运行中随时可按。
+
+### 剧本指令：显示界面
+
+面板同时注册为一个可显示的界面，引用路径为 `online-update-58685e/panel`。在剧本里使用「显示界面」指令并选中「更新与在线」，就能让它在指定剧情节点出现；该指令可以覆盖面板标题。
+
+> 更新检查**不依赖**这条指令——它在引擎启动期就已经跑完了。剧本指令只是给玩家一个主动查看更新日志的入口，按需使用。
 
 ## 目录结构
 
 ```
-src/
-  index.tsx         扩展入口 - 导出 Extension 子类(WelcomeExtension)
-  welcome-ui.tsx    视觉组件 - 默认的 Welcome 画面
-extension.json      manifest - id / 版本 / sdkVersion
-vite.config.ts      build 配置 - lib 模式 ESM 输出
-sdk/                @avg-studio/sdk 源码副本 - npm install 会 symlink
+.
+├── extension.json                扩展清单：id / 版本 / 入口 / 最低 SDK
+├── src/
+│   ├── index.tsx                 入口：设置声明、启动检查、快捷键注册
+│   ├── online-update-panel.tsx   面板 UI
+│   └── remote-api.ts             取数与解析：GitHub Releases、版本比较
+├── dist/index.js                 构建产物（已入库，导入即可用）
+├── sdk/                          Studio 同步出的 SDK 接口副本（不入库）
+├── vite.config.ts                构建配置：lib 模式，ESM 输出
+└── .gitignore
 ```
 
-## 开发流程
+## 本地开发
 
 ```bash
-npm install           # 安装 react / vite + 建立 sdk symlink
-npm run watch         # 监听 src/ 改动并增量 build 到 dist/
+npm install      # 安装依赖，并把 sdk/ 链接为 @avg-studio/sdk
+npm run build    # 单次构建到 dist/
+npm run watch    # 监听 src/ 变化并增量构建
 ```
 
-Studio 的 Preview 会自动接住 `dist/index.js` 的更新(约 200ms 延迟)。
-单次 build:`npm run build`。
+当前脚手架**没有** `npm run dev` 命令，监听构建请用 `npm run watch`。
 
-## 关键概念
+改动源码后，有几种方式让它生效：
 
-- **Extension 子类**:一个类 = 一个完整子模块。身份用 `@extension({ id, label })`
-  装饰器声明;`id` 在剧本里以 `<扩展id>/<id>` 被引用,是稳定标识。
-- **render()**:实现了就有界面,Action block「显示界面」会列出来。不实现 = 纯方法模块。
-- **ctx (ExtensionContext)**:通过 `useExtensionContext()` 拿到的 SDK 入口,
-  暴露 story / character / dialogue / variables / archive 等 namespace。
-- **props**:从剧本的「显示界面」block 传入,通过 `this.data` 在 `render()` 里拿到。
+1. 在扩展树中右键选择「构建扩展（自动装依赖）」
+2. 终端运行 `npm run watch`，Studio 会在约 200ms 内接住 `dist/` 的变化
+3. 手动 `npm run build`，然后在扩展树点「刷新扩展程序」
 
-## 下一步
+> 改完 TypeScript **不等于**游戏已经加载新代码。Studio 用的是项目内的**项目发行物**快照，只有构建产物同步之后才会生效。
 
-- 多个子模块:在 src/index.tsx 再加一个 `@extension({...}) export class XxxExtension extends Extension<...>`
-- 暴露给「调用方法」block:用 `static xxx = this.method({...})`,回调保留完整子类类型
-- 按项目配置方法候选:先在 `static settings` 声明布尔设置,再给方法加 `enabledWhen: "设置名"`
-- 持久化数据:用 `Extension.withSave(defineSave({ ... }))` 作为基类,this.save 自动强类型
-- 项目设置:加 `static settings = settings(s => ({ ... }))`,在 Studio 项目设置里可见
-- 完整 SDK 文档:Studio 顶部 · 帮助 · SDK 手册
+## 已知限制
+
+| 限制 | 说明 |
+|---|---|
+| 在线统计无可用后端 | 见[在线统计（预留）](#在线统计预留)。当前只有接口约定，没有配套服务 |
+| GitHub API 限流 | 未登录时每 IP 每小时 60 次，一次启动检查消耗 1 次。日常使用很难撞到，但同一出口 IP 下的玩家数量很大时可能失败 |
+| 不自动下载或替换游戏文件 | 扩展没有文件写入权限，也不应替玩家决定。它只负责提示，并用浏览器打开下载页 |
+| 启动提示不去重 | 玩家在完成更新之前，每次启动都会看到提示。启动检查没有可用的持久化通道来做「已提示过」标记 |
+| 版本号需要手动维护 | 扩展读不到游戏的真实版本，`currentVersion` 由创作者填写。发新版本时记得同步更新这个值，否则不会提示更新 |
+
+## 相关链接
+
+- [LetsGal Studio 扩展开发文档](https://docs.avg-engine.com/extensions/intro)
+- [Extension 基类](https://docs.avg-engine.com/extensions/extension-class)
+- [GitHub Releases API](https://docs.github.com/en/rest/releases/releases)
