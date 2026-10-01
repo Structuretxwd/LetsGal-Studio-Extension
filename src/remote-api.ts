@@ -11,10 +11,29 @@ export interface UpdateEntry {
   changes: string[];
 }
 
+/** Release 里上传的安装包。GitHub 自动附带的源码包不在这个列表里。 */
+export interface ReleaseAsset {
+  name: string;
+  url: string;
+  size?: number;
+}
+
+/** 下载入口指向什么：安装包直链，还是 Release 页面。 */
+export type DownloadKind = "asset" | "page";
+
 export interface UpdateInfo {
   latestVersion: string;
   releasedAt?: string;
+  /**
+   * 已经在解析阶段按玩家当前平台挑好：能挑出安装包就是直链，
+   * 挑不出才退回 Release 页面。
+   */
   downloadUrl?: string;
+  downloadKind: DownloadKind;
+  /** 直链对应的文件名；downloadKind 为 page 时为空。 */
+  assetName?: string;
+  /** 直链对应的文件大小（字节）。 */
+  assetSize?: number;
   announcement?: string;
   changelog: UpdateEntry[];
 }
@@ -88,7 +107,72 @@ function parseReleaseBody(body: unknown): string[] {
   return changes;
 }
 
-/** GitHub 返回的是不可信输入，逐字段收窄后再交给 UI。 */
+type Platform = "windows" | "android" | "macos" | "linux";
+
+/**
+ * 判断玩家跑在什么平台上。
+ *
+ * 打包后的 .exe（Windows 外壳）和 .apk（Android WebView）都会在 UA 里留下平台特征，
+ * 因此不需要额外让创作者配置「这个包给谁用」。
+ */
+function detectPlatform(): Platform | "unknown" {
+  const ua =
+    typeof navigator === "object" && navigator ? navigator.userAgent : "";
+  if (/android/i.test(ua)) return "android";
+  if (/windows|win32|win64/i.test(ua)) return "windows";
+  if (/macintosh|mac os x/i.test(ua)) return "macos";
+  if (/linux|x11/i.test(ua)) return "linux";
+  return "unknown";
+}
+
+/**
+ * 各平台安装包的后缀，按数组顺序从高到低匹配。
+ *
+ * 一个 Release 里同时放了 game.exe 和 game.apk 时，靠这份优先级挑出玩家真正要下的那个；
+ * 同一平台有多个命中（例如 .exe 和 .zip 都传了）时优先取靠前的。
+ */
+const PLATFORM_PATTERNS: Record<Platform, RegExp[]> = {
+  windows: [/\.exe$/i, /\.msi$/i, /\.zip$/i],
+  android: [/\.apk$/i, /\.zip$/i],
+  macos: [/\.dmg$/i, /\.pkg$/i, /\.zip$/i],
+  linux: [/\.appimage$/i, /\.deb$/i, /\.tar\.gz$/i, /\.zip$/i],
+};
+
+/**
+ * 从 Release 的安装包列表里挑一个给玩家。
+ *
+ * 挑不出平台匹配项时只在「只有一个包」的情况下兜底 —— 有多个包却认不出平台，
+ * 直接丢一个过去可能让安卓玩家下到 exe，不如退回 Release 页面让他自己选。
+ */
+function pickAsset(assets: ReleaseAsset[]): ReleaseAsset | undefined {
+  if (assets.length === 0) return undefined;
+  const platform = detectPlatform();
+  if (platform !== "unknown") {
+    for (const pattern of PLATFORM_PATTERNS[platform]) {
+      const hit = assets.find((asset) => pattern.test(asset.name));
+      if (hit) return hit;
+    }
+  }
+  return assets.length === 1 ? assets[0] : undefined;
+}
+
+/** 安装包列表同样是外部输入，只保留字段齐全的条目。 */
+function parseAssets(raw: unknown): ReleaseAsset[] {
+  if (!Array.isArray(raw)) return [];
+  const assets: ReleaseAsset[] = [];
+  for (const item of raw as unknown[]) {
+    const asset = asRecord(item);
+    if (!asset) continue;
+    const name = asNonEmptyString(asset.name);
+    const url = asNonEmptyString(asset.browser_download_url);
+    if (!name || !url) continue;
+    const size =
+      typeof asset.size === "number" && asset.size > 0 ? asset.size : undefined;
+    assets.push({ name, url, size });
+  }
+  return assets;
+}
+
 function parseReleases(raw: unknown, repo: string): UpdateInfo {
   if (!Array.isArray(raw)) {
     throw new Error(`仓库 ${repo} 的 Release 列表格式异常`);
@@ -125,10 +209,15 @@ function parseReleases(raw: unknown, repo: string): UpdateInfo {
   const latest = releases[0];
   const latestTag = asNonEmptyString(latest.tag_name) ?? "";
   const title = asNonEmptyString(latest.name);
+  const asset = pickAsset(parseAssets(latest.assets));
   return {
     latestVersion: stripVersionPrefix(latestTag),
     releasedAt: toDateOnly(latest.published_at),
-    downloadUrl: asNonEmptyString(latest.html_url),
+    // 优先给安装包直链，省掉玩家在 Release 页面里翻找文件；挑不出才退回页面。
+    downloadUrl: asset?.url ?? asNonEmptyString(latest.html_url),
+    downloadKind: asset ? "asset" : "page",
+    assetName: asset?.name,
+    assetSize: asset?.size,
     // 标题和 tag 相同时不当公告，免得面板里把 "v1.2.0" 显示两遍。
     announcement: title && title !== latestTag ? title : undefined,
     changelog,

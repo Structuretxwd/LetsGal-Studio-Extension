@@ -58,6 +58,19 @@ function formatClock(date: Date): string {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
+/** 安装包大小写成玩家一眼能看懂的量级，只保留一位小数。 */
+function formatSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${unit === 0 ? value : value.toFixed(1)} ${units[unit]}`;
+}
+
 export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
   save,
   onClose,
@@ -160,6 +173,12 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
   const latest = update?.latestVersion ?? "";
   const hasUpdate = update !== null && isNewerVersion(latest, version);
   const statsReady = (statsEndpoint ?? "").trim().length > 0;
+  // 按钮文案跟着「跳到安装包」还是「跳到页面」走，别让玩家以为要去下一份文件。
+  const downloadLabel = hasUpdate
+    ? "前往下载新版本"
+    : update?.downloadKind === "asset"
+      ? "下载当前版本"
+      : "前往下载页";
 
   return (
     <div
@@ -226,12 +245,12 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
             <StatCard
               label="当前在线"
               value={stats ? String(stats.online) : "—"}
-              hint={statsReady ? undefined : "未配置统计服务"}
+              hint={statsReady ? undefined : "暂不支持"}
             />
             <StatCard
               label="累计玩家"
               value={stats ? String(stats.total) : "—"}
-              hint={statsReady ? undefined : "未配置统计服务"}
+              hint={statsReady ? undefined : "暂不支持"}
             />
             <VersionCard
               current={version || "未填写"}
@@ -324,11 +343,7 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
                 ))}
               </ol>
             ) : (
-              <EmptyBox>
-                {releasesRepo?.trim()
-                  ? "还没有可显示的更新日志。"
-                  : "尚未配置「GitHub 仓库」，在 Studio 的扩展设置里填入 owner/repo 即可。"}
-              </EmptyBox>
+              <EmptyBox>暂时没有可显示的更新日志。</EmptyBox>
             )}
           </Section>
 
@@ -351,7 +366,7 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
                     onClick={() => handleDownload(update.downloadUrl as string)}
                     style={primaryButtonStyle}
                   >
-                    {hasUpdate ? "前往下载新版本" : "前往下载页"}
+                    {downloadLabel}
                   </button>
                   <div
                     title={update.downloadUrl}
@@ -359,20 +374,20 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
                       marginTop: 8,
                       fontFamily: tokens.fontMono,
                       fontSize: 12,
-                      color: tokens.fgMuted,
+                      color: update.downloadKind === "asset" ? tokens.fgSub : tokens.fgMuted,
                       maxWidth: 620,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {update.downloadUrl}
+                    {update.downloadKind === "asset" && update.assetName
+                      ? `${update.assetName}${update.assetSize ? ` · ${formatSize(update.assetSize)}` : ""}`
+                      : update.downloadUrl}
                   </div>
                 </>
               ) : (
-                <span style={{ fontSize: 14, color: tokens.fgMuted }}>
-                  更新数据里没有提供 downloadUrl
-                </span>
+                <span style={{ fontSize: 14, color: tokens.fgMuted }}>暂不提供下载入口</span>
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>

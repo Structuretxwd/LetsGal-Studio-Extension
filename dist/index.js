@@ -86,6 +86,45 @@ function parseReleaseBody(body) {
   }
   return changes;
 }
+function detectPlatform() {
+  const ua = typeof navigator === "object" && navigator ? navigator.userAgent : "";
+  if (/android/i.test(ua)) return "android";
+  if (/windows|win32|win64/i.test(ua)) return "windows";
+  if (/macintosh|mac os x/i.test(ua)) return "macos";
+  if (/linux|x11/i.test(ua)) return "linux";
+  return "unknown";
+}
+const PLATFORM_PATTERNS = {
+  windows: [/\.exe$/i, /\.msi$/i, /\.zip$/i],
+  android: [/\.apk$/i, /\.zip$/i],
+  macos: [/\.dmg$/i, /\.pkg$/i, /\.zip$/i],
+  linux: [/\.appimage$/i, /\.deb$/i, /\.tar\.gz$/i, /\.zip$/i]
+};
+function pickAsset(assets) {
+  if (assets.length === 0) return void 0;
+  const platform = detectPlatform();
+  if (platform !== "unknown") {
+    for (const pattern of PLATFORM_PATTERNS[platform]) {
+      const hit = assets.find((asset) => pattern.test(asset.name));
+      if (hit) return hit;
+    }
+  }
+  return assets.length === 1 ? assets[0] : void 0;
+}
+function parseAssets(raw) {
+  if (!Array.isArray(raw)) return [];
+  const assets = [];
+  for (const item of raw) {
+    const asset = asRecord(item);
+    if (!asset) continue;
+    const name = asNonEmptyString(asset.name);
+    const url = asNonEmptyString(asset.browser_download_url);
+    if (!name || !url) continue;
+    const size = typeof asset.size === "number" && asset.size > 0 ? asset.size : void 0;
+    assets.push({ name, url, size });
+  }
+  return assets;
+}
 function parseReleases(raw, repo) {
   if (!Array.isArray(raw)) {
     throw new Error(`仓库 ${repo} 的 Release 列表格式异常`);
@@ -117,10 +156,15 @@ function parseReleases(raw, repo) {
   const latest = releases[0];
   const latestTag = asNonEmptyString(latest.tag_name) ?? "";
   const title = asNonEmptyString(latest.name);
+  const asset = pickAsset(parseAssets(latest.assets));
   return {
     latestVersion: stripVersionPrefix(latestTag),
     releasedAt: toDateOnly(latest.published_at),
-    downloadUrl: asNonEmptyString(latest.html_url),
+    // 优先给安装包直链，省掉玩家在 Release 页面里翻找文件；挑不出才退回页面。
+    downloadUrl: (asset == null ? void 0 : asset.url) ?? asNonEmptyString(latest.html_url),
+    downloadKind: asset ? "asset" : "page",
+    assetName: asset == null ? void 0 : asset.name,
+    assetSize: asset == null ? void 0 : asset.size,
     // 标题和 tag 相同时不当公告，免得面板里把 "v1.2.0" 显示两遍。
     announcement: title && title !== latestTag ? title : void 0,
     changelog
@@ -222,6 +266,17 @@ function formatClock(date) {
   const pad = (n) => String(n).padStart(2, "0");
   return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
+function formatSize(bytes) {
+  if (!bytes || bytes <= 0) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${unit === 0 ? value : value.toFixed(1)} ${units[unit]}`;
+}
 const OnlineUpdatePanel = ({
   save,
   onClose,
@@ -308,6 +363,7 @@ const OnlineUpdatePanel = ({
   const latest = (update == null ? void 0 : update.latestVersion) ?? "";
   const hasUpdate = update !== null && isNewerVersion(latest, version);
   const statsReady = (statsEndpoint ?? "").trim().length > 0;
+  const downloadLabel = hasUpdate ? "前往下载新版本" : (update == null ? void 0 : update.downloadKind) === "asset" ? "下载当前版本" : "前往下载页";
   return /* @__PURE__ */ jsx(
     "div",
     {
@@ -378,7 +434,7 @@ const OnlineUpdatePanel = ({
                   {
                     label: "当前在线",
                     value: stats ? String(stats.online) : "—",
-                    hint: statsReady ? void 0 : "未配置统计服务"
+                    hint: statsReady ? void 0 : "暂不支持"
                   }
                 ),
                 /* @__PURE__ */ jsx(
@@ -386,7 +442,7 @@ const OnlineUpdatePanel = ({
                   {
                     label: "累计玩家",
                     value: stats ? String(stats.total) : "—",
-                    hint: statsReady ? void 0 : "未配置统计服务"
+                    hint: statsReady ? void 0 : "暂不支持"
                   }
                 ),
                 /* @__PURE__ */ jsx(
@@ -487,7 +543,7 @@ const OnlineUpdatePanel = ({
                         entry.version
                       ))
                     }
-                  ) : /* @__PURE__ */ jsx(EmptyBox, { children: (releasesRepo == null ? void 0 : releasesRepo.trim()) ? "还没有可显示的更新日志。" : "尚未配置「GitHub 仓库」，在 Studio 的扩展设置里填入 owner/repo 即可。" })
+                  ) : /* @__PURE__ */ jsx(EmptyBox, { children: "暂时没有可显示的更新日志。" })
                 }
               ),
               /* @__PURE__ */ jsxs(
@@ -510,7 +566,7 @@ const OnlineUpdatePanel = ({
                           type: "button",
                           onClick: () => handleDownload(update.downloadUrl),
                           style: primaryButtonStyle,
-                          children: hasUpdate ? "前往下载新版本" : "前往下载页"
+                          children: downloadLabel
                         }
                       ),
                       /* @__PURE__ */ jsx(
@@ -521,16 +577,16 @@ const OnlineUpdatePanel = ({
                             marginTop: 8,
                             fontFamily: tokens.fontMono,
                             fontSize: 12,
-                            color: tokens.fgMuted,
+                            color: update.downloadKind === "asset" ? tokens.fgSub : tokens.fgMuted,
                             maxWidth: 620,
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap"
                           },
-                          children: update.downloadUrl
+                          children: update.downloadKind === "asset" && update.assetName ? `${update.assetName}${update.assetSize ? ` · ${formatSize(update.assetSize)}` : ""}` : update.downloadUrl
                         }
                       )
-                    ] }) : /* @__PURE__ */ jsx("span", { style: { fontSize: 14, color: tokens.fgMuted }, children: "更新数据里没有提供 downloadUrl" }) }),
+                    ] }) : /* @__PURE__ */ jsx("span", { style: { fontSize: 14, color: tokens.fgMuted }, children: "暂不提供下载入口" }) }),
                     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }, children: [
                       syncedAt && /* @__PURE__ */ jsxs("span", { style: { fontSize: 13, color: tokens.fgMuted }, children: [
                         "同步于 ",
