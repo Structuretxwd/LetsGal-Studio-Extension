@@ -177,7 +177,7 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
   const downloadLabel = hasUpdate
     ? "前往下载新版本"
     : update?.downloadKind === "asset"
-      ? "下载当前版本"
+      ? "重新下载"
       : "前往下载页";
 
   return (
@@ -259,6 +259,18 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
               loading={loadingUpdate}
             />
           </div>
+
+          {update?.downloadUrl && (
+            <DownloadCta
+              hasUpdate={hasUpdate}
+              version={latest}
+              label={downloadLabel}
+              fileName={update.downloadKind === "asset" ? update.assetName : undefined}
+              fileSize={update.assetSize}
+              url={update.downloadUrl}
+              onDownload={handleDownload}
+            />
+          )}
 
           {statsError && <Notice tone="warn">在线统计读取失败：{statsError}</Notice>}
           {updateError && <Notice tone="warn">更新信息读取失败：{updateError}</Notice>}
@@ -359,34 +371,7 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
             }}
           >
             <div style={{ minWidth: 0 }}>
-              {update?.downloadUrl ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => handleDownload(update.downloadUrl as string)}
-                    style={primaryButtonStyle}
-                  >
-                    {downloadLabel}
-                  </button>
-                  <div
-                    title={update.downloadUrl}
-                    style={{
-                      marginTop: 8,
-                      fontFamily: tokens.fontMono,
-                      fontSize: 12,
-                      color: update.downloadKind === "asset" ? tokens.fgSub : tokens.fgMuted,
-                      maxWidth: 620,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {update.downloadKind === "asset" && update.assetName
-                      ? `${update.assetName}${update.assetSize ? ` · ${formatSize(update.assetSize)}` : ""}`
-                      : update.downloadUrl}
-                  </div>
-                </>
-              ) : (
+              {!update?.downloadUrl && (
                 <span style={{ fontSize: 14, color: tokens.fgMuted }}>暂不提供下载入口</span>
               )}
             </div>
@@ -527,6 +512,96 @@ function VersionCard({
   );
 }
 
+/**
+ * 顶部的下载区。
+ *
+ * 下载是面板里唯一要玩家动手完成的事，压在滚动区底部会被更新日志挡住、要往下翻才找得到。
+ * 所以挪到卡片正下方，按钮做大，进面板第一眼就能看到。
+ */
+function DownloadCta({
+  hasUpdate,
+  version,
+  label,
+  fileName,
+  fileSize,
+  url,
+  onDownload,
+}: {
+  hasUpdate: boolean;
+  version: string;
+  label: string;
+  fileName?: string;
+  fileSize?: number;
+  url: string;
+  onDownload: (url: string) => void;
+}) {
+  const headline = hasUpdate ? "下载最新版本" : "已是最新版本";
+  const detail = fileName
+    ? `${fileName}${fileSize ? ` · ${formatSize(fileSize)}` : ""}`
+    : url;
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 24,
+        marginBottom: 28,
+        padding: "24px 28px",
+        borderRadius: 16,
+        border: `1px solid ${hasUpdate ? `${tokens.accent}55` : tokens.hair}`,
+        background: hasUpdate ? `${tokens.accent}12` : tokens.bgSub,
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            fontFamily: tokens.fontDisplay,
+            fontSize: 25,
+            lineHeight: 1.2,
+            marginBottom: 8,
+          }}
+        >
+          {version ? `${headline} ${version}` : headline}
+        </div>
+        <div
+          title={url}
+          style={{
+            fontFamily: tokens.fontMono,
+            fontSize: 12.5,
+            color: tokens.fgSub,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {detail}
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => onDownload(url)}
+        style={{
+          flexShrink: 0,
+          background: hasUpdate ? tokens.accent : tokens.fgSub,
+          border: "none",
+          borderRadius: 12,
+          padding: "19px 38px",
+          fontSize: 19,
+          fontWeight: 600,
+          color: "#FFFFFF",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          whiteSpace: "nowrap",
+          boxShadow: hasUpdate ? `0 14px 26px -12px ${tokens.accent}` : "none",
+        }}
+      >
+        {label}
+      </button>
+    </div>
+  );
+}
+
 function Section({
   label,
   badge,
@@ -633,18 +708,6 @@ const closeButtonStyle: React.CSSProperties = {
   padding: "9px 18px",
   fontSize: 14.5,
   color: tokens.fgSub,
-  cursor: "pointer",
-  fontFamily: "inherit",
-};
-
-const primaryButtonStyle: React.CSSProperties = {
-  background: tokens.accent,
-  border: "none",
-  borderRadius: 10,
-  padding: "12px 24px",
-  fontSize: 15.5,
-  fontWeight: 500,
-  color: "#FFFFFF",
   cursor: "pointer",
   fontFamily: "inherit",
 };

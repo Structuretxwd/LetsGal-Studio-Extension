@@ -83,18 +83,37 @@ export class OnlineUpdateExtension extends Extension.withSave(onlineUpdateSave)<
    * 这里是静态方法，拿不到 this.save，因此心跳/在线统计只能发生在面板打开期间。
    */
   static async onRegister(ctx: ExtensionContext): Promise<void> {
-    const actionId = `${manifest.id}.open-panel`;
-    ctx.input.registerAction({
-      id: actionId,
-      label: "打开更新与在线面板",
-      defaultKeys: ["KeyU"],
-    });
-    ctx.input.onAction(actionId, () => {
-      void ctx.ui.show(PANEL_MODULE_ID);
-    });
+    // 第一行就无条件打日志。
+    // 否则「引擎没调用 onRegister」「调用了但设置不满足静默返回」「中途抛异常」三种
+    // 情况在日志里长得一模一样 —— 全是空的，没法定位到底卡在哪一步。
+    console.log("[online-update] onRegister 已执行");
 
-    if (ctx.settings.get<boolean>("checkOnLaunch") !== false) {
+    try {
+      const actionId = `${manifest.id}.open-panel`;
+      ctx.input.registerAction({
+        id: actionId,
+        label: "打开更新与在线面板",
+        defaultKeys: ["KeyU"],
+      });
+      console.log(`[online-update] 已注册快捷键 U（action = ${actionId}）`);
+      ctx.input.onAction(actionId, () => {
+        void ctx.ui.show(PANEL_MODULE_ID);
+      });
+
+      const checkOnLaunch = ctx.settings.get<boolean>("checkOnLaunch");
+      const repo = ctx.settings.get<string>("releasesRepo");
+      console.log(
+        `[online-update] 读取设置：checkOnLaunch = ${String(checkOnLaunch)}，releasesRepo = "${repo ?? ""}"`,
+      );
+
+      if (checkOnLaunch === false) {
+        console.log("[online-update] checkOnLaunch 为 false，跳过启动检查");
+        return;
+      }
       await notifyUpdateOnLaunch(ctx);
+    } catch (error) {
+      // 前面任何一步抛异常都会让 onRegister 静默失败，必须留痕。
+      console.error("[online-update] onRegister 执行失败", error);
     }
   }
 
@@ -120,11 +139,21 @@ async function notifyUpdateOnLaunch(ctx: ExtensionContext): Promise<void> {
   const repo = (ctx.settings.get<string>("releasesRepo") ?? "").trim();
   const currentVersion =
     ctx.settings.get<string>("currentVersion") || DEFAULT_CURRENT_VERSION;
-  if (!repo) return;
+  if (!repo) {
+    console.log("[online-update] releasesRepo 未填，跳过启动检查");
+    return;
+  }
 
   try {
     const info = await fetchUpdateInfo(repo);
-    if (!isNewerVersion(info.latestVersion, currentVersion)) return;
+    if (!isNewerVersion(info.latestVersion, currentVersion)) {
+      // 没有新版时也留一行日志：否则"检查过了"和"根本没跑"在日志里长得一模一样，
+      // 创作者无法确认启动检查是否真的生效。
+      console.log(
+        `[online-update] 已是最新版本 ${info.latestVersion}（当前 ${currentVersion}）`,
+      );
+      return;
+    }
     console.log(
       `[online-update] 发现新版本 ${info.latestVersion}（当前 ${currentVersion}）`,
     );

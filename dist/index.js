@@ -1,7 +1,7 @@
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __knownSymbol = (name, symbol) => (symbol = Symbol[name]) ? symbol : Symbol.for("Symbol." + name);
+var __knownSymbol = (name2, symbol) => (symbol = Symbol[name2]) ? symbol : Symbol.for("Symbol." + name2);
 var __typeError = (msg) => {
   throw TypeError(msg);
 };
@@ -10,35 +10,35 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 var __decoratorStart = (base) => [, , , __create((base == null ? void 0 : base[__knownSymbol("metadata")]) ?? null)];
 var __decoratorStrings = ["class", "method", "getter", "setter", "accessor", "field", "value", "get", "set"];
 var __expectFn = (fn) => fn !== void 0 && typeof fn !== "function" ? __typeError("Function expected") : fn;
-var __decoratorContext = (kind, name, done, metadata, fns) => ({ kind: __decoratorStrings[kind], name, metadata, addInitializer: (fn) => done._ ? __typeError("Already initialized") : fns.push(__expectFn(fn || null)) });
+var __decoratorContext = (kind, name2, done, metadata, fns) => ({ kind: __decoratorStrings[kind], name: name2, metadata, addInitializer: (fn) => done._ ? __typeError("Already initialized") : fns.push(__expectFn(fn || null)) });
 var __decoratorMetadata = (array, target) => __defNormalProp(target, __knownSymbol("metadata"), array[3]);
 var __runInitializers = (array, flags, self, value) => {
   for (var i = 0, fns = array[flags >> 1], n = fns && fns.length; i < n; i++) flags & 1 ? fns[i].call(self) : value = fns[i].call(self, value);
   return value;
 };
-var __decorateElement = (array, flags, name, decorators, target, extra) => {
+var __decorateElement = (array, flags, name2, decorators, target, extra) => {
   var fn, it, done, ctx, access, k = flags & 7, s = !!(flags & 8), p = !!(flags & 16);
   var j = k > 3 ? array.length + 1 : k ? s ? 1 : 2 : 0, key = __decoratorStrings[k + 5];
   var initializers = k > 3 && (array[j - 1] = []), extraInitializers = array[j] || (array[j] = []);
-  var desc = k && (!p && !s && (target = target.prototype), k < 5 && (k > 3 || !p) && __getOwnPropDesc(k < 4 ? target : { get [name]() {
+  var desc = k && (!p && !s && (target = target.prototype), k < 5 && (k > 3 || !p) && __getOwnPropDesc(k < 4 ? target : { get [name2]() {
     return __privateGet(this, extra);
-  }, set [name](x) {
+  }, set [name2](x) {
     return __privateSet(this, extra, x);
-  } }, name));
-  k ? p && k < 4 && __name(extra, (k > 2 ? "set " : k > 1 ? "get " : "") + name) : __name(target, name);
+  } }, name2));
+  k ? p && k < 4 && __name(extra, (k > 2 ? "set " : k > 1 ? "get " : "") + name2) : __name(target, name2);
   for (var i = decorators.length - 1; i >= 0; i--) {
-    ctx = __decoratorContext(k, name, done = {}, array[3], extraInitializers);
+    ctx = __decoratorContext(k, name2, done = {}, array[3], extraInitializers);
     if (k) {
-      ctx.static = s, ctx.private = p, access = ctx.access = { has: p ? (x) => __privateIn(target, x) : (x) => name in x };
-      if (k ^ 3) access.get = p ? (x) => (k ^ 1 ? __privateGet : __privateMethod)(x, target, k ^ 4 ? extra : desc.get) : (x) => x[name];
-      if (k > 2) access.set = p ? (x, y) => __privateSet(x, target, y, k ^ 4 ? extra : desc.set) : (x, y) => x[name] = y;
+      ctx.static = s, ctx.private = p, access = ctx.access = { has: p ? (x) => __privateIn(target, x) : (x) => name2 in x };
+      if (k ^ 3) access.get = p ? (x) => (k ^ 1 ? __privateGet : __privateMethod)(x, target, k ^ 4 ? extra : desc.get) : (x) => x[name2];
+      if (k > 2) access.set = p ? (x, y) => __privateSet(x, target, y, k ^ 4 ? extra : desc.set) : (x, y) => x[name2] = y;
     }
     it = (0, decorators[i])(k ? k < 4 ? p ? extra : desc[key] : k > 4 ? void 0 : { get: desc.get, set: desc.set } : target, ctx), done._ = 1;
     if (k ^ 4 || it === void 0) __expectFn(it) && (k > 4 ? initializers.unshift(it) : k ? p ? extra = it : desc[key] = it : target = it);
     else if (typeof it !== "object" || it === null) __typeError("Object expected");
     else __expectFn(fn = it.get) && (desc.get = fn), __expectFn(fn = it.set) && (desc.set = fn), __expectFn(fn = it.init) && initializers.unshift(fn);
   }
-  return k || __decoratorMetadata(array, target), desc && __defProp(target, name, desc), p ? k ^ 4 ? extra : desc : target;
+  return k || __decoratorMetadata(array, target), desc && __defProp(target, name2, desc), p ? k ^ 4 ? extra : desc : target;
 };
 var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
 var __privateIn = (member, obj) => Object(obj) !== obj ? __typeError('Cannot use the "in" operator on this value') : member.has(obj);
@@ -47,11 +47,23 @@ var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "
 var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
 var _OnlineUpdateExtension_decorators, _init, _a;
 import { useExtensionContext, defineSave, Extension, settings, extension } from "@avg-studio/sdk";
-import { jsx, jsxs, Fragment } from "react/jsx-runtime";
+import { jsx, jsxs } from "react/jsx-runtime";
 import { useState, useEffect, useCallback } from "react";
 const id = "online-update-58685e";
+const name = "online-update";
+const description = "统计在线人数与总玩家数，检查游戏版本更新，展示公告、更新日志与下载入口。";
+const author = "Structure";
+const version = "0.1.0";
+const entry = "dist/index.js";
+const sdkVersion = "^2.0.0";
 const manifest = {
-  id
+  id,
+  name,
+  description,
+  author,
+  version,
+  entry,
+  sdkVersion
 };
 const RELEASE_PAGE_SIZE = 10;
 const MAX_CHANGES_PER_RELEASE = 20;
@@ -117,11 +129,11 @@ function parseAssets(raw) {
   for (const item of raw) {
     const asset = asRecord(item);
     if (!asset) continue;
-    const name = asNonEmptyString(asset.name);
+    const name2 = asNonEmptyString(asset.name);
     const url = asNonEmptyString(asset.browser_download_url);
-    if (!name || !url) continue;
+    if (!name2 || !url) continue;
     const size = typeof asset.size === "number" && asset.size > 0 ? asset.size : void 0;
-    assets.push({ name, url, size });
+    assets.push({ name: name2, url, size });
   }
   return assets;
 }
@@ -193,8 +205,8 @@ async function fetchUpdateInfo(repo) {
   return parseReleases(await response.json(), slug);
 }
 const DEFAULT_CURRENT_VERSION = "0.1.0";
-function versionParts(version) {
-  return version.trim().replace(/^v/i, "").split(".").map((part) => {
+function versionParts(version2) {
+  return version2.trim().replace(/^v/i, "").split(".").map((part) => {
     const parsed = Number.parseInt(part, 10);
     return Number.isFinite(parsed) ? parsed : 0;
   });
@@ -359,11 +371,11 @@ const OnlineUpdatePanel = ({
   const handleDownload = useCallback((url) => {
     window.open(url, "_blank", "noopener,noreferrer");
   }, []);
-  const version = (currentVersion ?? "").trim() || DEFAULT_CURRENT_VERSION;
+  const version2 = (currentVersion ?? "").trim() || DEFAULT_CURRENT_VERSION;
   const latest = (update == null ? void 0 : update.latestVersion) ?? "";
-  const hasUpdate = update !== null && isNewerVersion(latest, version);
+  const hasUpdate = update !== null && isNewerVersion(latest, version2);
   const statsReady = (statsEndpoint ?? "").trim().length > 0;
-  const downloadLabel = hasUpdate ? "前往下载新版本" : (update == null ? void 0 : update.downloadKind) === "asset" ? "下载当前版本" : "前往下载页";
+  const downloadLabel = hasUpdate ? "前往下载新版本" : (update == null ? void 0 : update.downloadKind) === "asset" ? "重新下载" : "前往下载页";
   return /* @__PURE__ */ jsx(
     "div",
     {
@@ -448,13 +460,25 @@ const OnlineUpdatePanel = ({
                 /* @__PURE__ */ jsx(
                   VersionCard,
                   {
-                    current: version,
+                    current: version2,
                     latest: latest || "未知",
                     hasUpdate,
                     loading: loadingUpdate
                   }
                 )
               ] }),
+              (update == null ? void 0 : update.downloadUrl) && /* @__PURE__ */ jsx(
+                DownloadCta,
+                {
+                  hasUpdate,
+                  version: latest,
+                  label: downloadLabel,
+                  fileName: update.downloadKind === "asset" ? update.assetName : void 0,
+                  fileSize: update.assetSize,
+                  url: update.downloadUrl,
+                  onDownload: handleDownload
+                }
+              ),
               statsError && /* @__PURE__ */ jsxs(Notice, { tone: "warn", children: [
                 "在线统计读取失败：",
                 statsError
@@ -492,7 +516,7 @@ const OnlineUpdatePanel = ({
                         flexDirection: "column",
                         gap: 14
                       },
-                      children: update.changelog.map((entry) => /* @__PURE__ */ jsxs(
+                      children: update.changelog.map((entry2) => /* @__PURE__ */ jsxs(
                         "li",
                         {
                           style: {
@@ -509,19 +533,19 @@ const OnlineUpdatePanel = ({
                                   display: "flex",
                                   alignItems: "baseline",
                                   gap: 12,
-                                  marginBottom: entry.changes.length > 0 ? 8 : 0
+                                  marginBottom: entry2.changes.length > 0 ? 8 : 0
                                 },
                                 children: [
                                   /* @__PURE__ */ jsxs("span", { style: { fontFamily: tokens.fontMono, fontSize: 15, fontWeight: 600 }, children: [
                                     "v",
-                                    entry.version
+                                    entry2.version
                                   ] }),
-                                  entry.date && /* @__PURE__ */ jsx("span", { style: { fontSize: 13, color: tokens.fgMuted }, children: entry.date }),
-                                  entry.version === latest && /* @__PURE__ */ jsx("span", { style: badgeStyle(tokens.accent), children: "最新" })
+                                  entry2.date && /* @__PURE__ */ jsx("span", { style: { fontSize: 13, color: tokens.fgMuted }, children: entry2.date }),
+                                  entry2.version === latest && /* @__PURE__ */ jsx("span", { style: badgeStyle(tokens.accent), children: "最新" })
                                 ]
                               }
                             ),
-                            entry.changes.map((change, index) => /* @__PURE__ */ jsxs(
+                            entry2.changes.map((change, index) => /* @__PURE__ */ jsxs(
                               "div",
                               {
                                 style: {
@@ -536,11 +560,11 @@ const OnlineUpdatePanel = ({
                                   change
                                 ]
                               },
-                              `${entry.version}-${index}`
+                              `${entry2.version}-${index}`
                             ))
                           ]
                         },
-                        entry.version
+                        entry2.version
                       ))
                     }
                   ) : /* @__PURE__ */ jsx(EmptyBox, { children: "暂时没有可显示的更新日志。" })
@@ -559,34 +583,7 @@ const OnlineUpdatePanel = ({
                     gap: 20
                   },
                   children: [
-                    /* @__PURE__ */ jsx("div", { style: { minWidth: 0 }, children: (update == null ? void 0 : update.downloadUrl) ? /* @__PURE__ */ jsxs(Fragment, { children: [
-                      /* @__PURE__ */ jsx(
-                        "button",
-                        {
-                          type: "button",
-                          onClick: () => handleDownload(update.downloadUrl),
-                          style: primaryButtonStyle,
-                          children: downloadLabel
-                        }
-                      ),
-                      /* @__PURE__ */ jsx(
-                        "div",
-                        {
-                          title: update.downloadUrl,
-                          style: {
-                            marginTop: 8,
-                            fontFamily: tokens.fontMono,
-                            fontSize: 12,
-                            color: update.downloadKind === "asset" ? tokens.fgSub : tokens.fgMuted,
-                            maxWidth: 620,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap"
-                          },
-                          children: update.downloadKind === "asset" && update.assetName ? `${update.assetName}${update.assetSize ? ` · ${formatSize(update.assetSize)}` : ""}` : update.downloadUrl
-                        }
-                      )
-                    ] }) : /* @__PURE__ */ jsx("span", { style: { fontSize: 14, color: tokens.fgMuted }, children: "暂不提供下载入口" }) }),
+                    /* @__PURE__ */ jsx("div", { style: { minWidth: 0 }, children: !(update == null ? void 0 : update.downloadUrl) && /* @__PURE__ */ jsx("span", { style: { fontSize: 14, color: tokens.fgMuted }, children: "暂不提供下载入口" }) }),
                     /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }, children: [
                       syncedAt && /* @__PURE__ */ jsxs("span", { style: { fontSize: 13, color: tokens.fgMuted }, children: [
                         "同步于 ",
@@ -716,6 +713,87 @@ function VersionCard({
     }
   );
 }
+function DownloadCta({
+  hasUpdate,
+  version: version2,
+  label,
+  fileName,
+  fileSize,
+  url,
+  onDownload
+}) {
+  const headline = hasUpdate ? "下载最新版本" : "已是最新版本";
+  const detail = fileName ? `${fileName}${fileSize ? ` · ${formatSize(fileSize)}` : ""}` : url;
+  return /* @__PURE__ */ jsxs(
+    "div",
+    {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 24,
+        marginBottom: 28,
+        padding: "24px 28px",
+        borderRadius: 16,
+        border: `1px solid ${hasUpdate ? `${tokens.accent}55` : tokens.hair}`,
+        background: hasUpdate ? `${tokens.accent}12` : tokens.bgSub
+      },
+      children: [
+        /* @__PURE__ */ jsxs("div", { style: { minWidth: 0 }, children: [
+          /* @__PURE__ */ jsx(
+            "div",
+            {
+              style: {
+                fontFamily: tokens.fontDisplay,
+                fontSize: 25,
+                lineHeight: 1.2,
+                marginBottom: 8
+              },
+              children: version2 ? `${headline} ${version2}` : headline
+            }
+          ),
+          /* @__PURE__ */ jsx(
+            "div",
+            {
+              title: url,
+              style: {
+                fontFamily: tokens.fontMono,
+                fontSize: 12.5,
+                color: tokens.fgSub,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
+              },
+              children: detail
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            onClick: () => onDownload(url),
+            style: {
+              flexShrink: 0,
+              background: hasUpdate ? tokens.accent : tokens.fgSub,
+              border: "none",
+              borderRadius: 12,
+              padding: "19px 38px",
+              fontSize: 19,
+              fontWeight: 600,
+              color: "#FFFFFF",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              whiteSpace: "nowrap",
+              boxShadow: hasUpdate ? `0 14px 26px -12px ${tokens.accent}` : "none"
+            },
+            children: label
+          }
+        )
+      ]
+    }
+  );
+}
 function Section({
   label,
   badge,
@@ -819,17 +897,6 @@ const closeButtonStyle = {
   cursor: "pointer",
   fontFamily: "inherit"
 };
-const primaryButtonStyle = {
-  background: tokens.accent,
-  border: "none",
-  borderRadius: 10,
-  padding: "12px 24px",
-  fontSize: 15.5,
-  fontWeight: 500,
-  color: "#FFFFFF",
-  cursor: "pointer",
-  fontFamily: "inherit"
-};
 const ghostButtonStyle = {
   background: tokens.bgCard,
   border: `1px solid ${tokens.border}`,
@@ -856,17 +923,30 @@ let _OnlineUpdateExtension = class _OnlineUpdateExtension extends (_a = Extensio
    * 这里是静态方法，拿不到 this.save，因此心跳/在线统计只能发生在面板打开期间。
    */
   static async onRegister(ctx) {
-    const actionId = `${manifest.id}.open-panel`;
-    ctx.input.registerAction({
-      id: actionId,
-      label: "打开更新与在线面板",
-      defaultKeys: ["KeyU"]
-    });
-    ctx.input.onAction(actionId, () => {
-      void ctx.ui.show(PANEL_MODULE_ID);
-    });
-    if (ctx.settings.get("checkOnLaunch") !== false) {
+    console.log("[online-update] onRegister 已执行");
+    try {
+      const actionId = `${manifest.id}.open-panel`;
+      ctx.input.registerAction({
+        id: actionId,
+        label: "打开更新与在线面板",
+        defaultKeys: ["KeyU"]
+      });
+      console.log(`[online-update] 已注册快捷键 U（action = ${actionId}）`);
+      ctx.input.onAction(actionId, () => {
+        void ctx.ui.show(PANEL_MODULE_ID);
+      });
+      const checkOnLaunch = ctx.settings.get("checkOnLaunch");
+      const repo = ctx.settings.get("releasesRepo");
+      console.log(
+        `[online-update] 读取设置：checkOnLaunch = ${String(checkOnLaunch)}，releasesRepo = "${repo ?? ""}"`
+      );
+      if (checkOnLaunch === false) {
+        console.log("[online-update] checkOnLaunch 为 false，跳过启动检查");
+        return;
+      }
       await notifyUpdateOnLaunch(ctx);
+    } catch (error) {
+      console.error("[online-update] onRegister 执行失败", error);
     }
   }
   render() {
@@ -897,10 +977,18 @@ let OnlineUpdateExtension = _OnlineUpdateExtension;
 async function notifyUpdateOnLaunch(ctx) {
   const repo = (ctx.settings.get("releasesRepo") ?? "").trim();
   const currentVersion = ctx.settings.get("currentVersion") || DEFAULT_CURRENT_VERSION;
-  if (!repo) return;
+  if (!repo) {
+    console.log("[online-update] releasesRepo 未填，跳过启动检查");
+    return;
+  }
   try {
     const info = await fetchUpdateInfo(repo);
-    if (!isNewerVersion(info.latestVersion, currentVersion)) return;
+    if (!isNewerVersion(info.latestVersion, currentVersion)) {
+      console.log(
+        `[online-update] 已是最新版本 ${info.latestVersion}（当前 ${currentVersion}）`
+      );
+      return;
+    }
     console.log(
       `[online-update] 发现新版本 ${info.latestVersion}（当前 ${currentVersion}）`
     );
