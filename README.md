@@ -113,7 +113,7 @@ sequenceDiagram
 
 在 Studio 打开 **个性化 → 项目设置**，在左侧扩展树顶部点「导入扩展」，选择本目录或 `.zip` 压缩包（也可以直接把文件夹拖进扩展树）。
 
-本仓库已经把 `dist/index.js` 一起提交，**导入后即可使用，不需要先 `npm install`**。
+本仓库已经把 `dist/index.mjs` 一起提交，**导入后即可使用，不需要先 `npm install`**。
 
 ### 2. 准备一个发布 Release 的公开仓库
 
@@ -252,7 +252,8 @@ https://github.com/owner/repo/releases/download/v0.2.0/game.exe
 │   ├── index.tsx                 入口：设置声明、启动检查、快捷键注册
 │   ├── online-update-panel.tsx   面板 UI
 │   └── remote-api.ts             取数与解析：GitHub Releases、版本比较
-├── dist/index.js                 构建产物（已入库，导入即可用）
+├── dist/index.mjs                构建产物，extension.json 的 entry 指向它
+├── dist/index.js                 同一份产物的副本，兼容按旧约定取件的宿主
 ├── sdk/                          Studio 同步出的 SDK 接口副本（不入库）
 ├── vite.config.ts                构建配置：lib 模式，ESM 输出
 └── .gitignore

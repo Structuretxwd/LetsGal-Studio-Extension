@@ -4,6 +4,6 @@
   "description": "统计在线人数与总玩家数，检查游戏版本更新，展示公告、更新日志与下载入口。",
   "author": "Structure",
   "version": "0.1.0",
-  "entry": "dist/index.js",
+  "entry": "dist/index.mjs",
   "sdkVersion": "^2.0.0"
 }
