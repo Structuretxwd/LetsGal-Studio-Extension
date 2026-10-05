@@ -51,7 +51,7 @@ import { jsx, jsxs } from "react/jsx-runtime";
 import { useState, useEffect, useCallback } from "react";
 const id = "online-update-58685e";
 const name = "online-update";
-const description = "统计在线人数与总玩家数，检查游戏版本更新，展示公告、更新日志与下载入口。";
+const description = "启动自动检查新版本，弹出公告与更新日志，按玩家平台一键直达安装包。";
 const author = "Structure";
 const version = "0.1.0";
 const entry = "dist/index.mjs";
@@ -431,7 +431,7 @@ const OnlineUpdatePanel = ({
                           letterSpacing: "-0.02em",
                           margin: 0
                         },
-                        children: title ?? "更新与在线"
+                        children: title ?? "游戏更新"
                       }
                     )
                   ] }),
@@ -916,7 +916,7 @@ const onlineUpdateSave = defineSave({
     label: "本机玩家标识（在线统计用，跨存档保持不变）"
   }
 });
-_OnlineUpdateExtension_decorators = [extension({ id: PANEL_MODULE_ID, label: "更新与在线" })];
+_OnlineUpdateExtension_decorators = [extension({ id: PANEL_MODULE_ID, label: "游戏更新" })];
 let _OnlineUpdateExtension = class _OnlineUpdateExtension extends (_a = Extension.withSave(onlineUpdateSave)) {
   /**
    * 启动期钩子：注册全局快捷键 + 可选的一次更新检查。
@@ -928,7 +928,7 @@ let _OnlineUpdateExtension = class _OnlineUpdateExtension extends (_a = Extensio
       const actionId = `${manifest.id}.open-panel`;
       ctx.input.registerAction({
         id: actionId,
-        label: "打开更新与在线面板",
+        label: "打开游戏更新面板",
         defaultKeys: ["KeyU"]
       });
       console.log(`[online-update] 已注册快捷键 U（action = ${actionId}）`);

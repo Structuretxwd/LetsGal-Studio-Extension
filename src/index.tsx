@@ -50,7 +50,7 @@ const onlineUpdateSave = defineSave({
  *
  * 本项目要靠 ctx.ui.show("panel") 弹面板，所以必须保持默认（false）。
  */
-@extension({ id: PANEL_MODULE_ID, label: "更新与在线" })
+@extension({ id: PANEL_MODULE_ID, label: "游戏更新" })
 export class OnlineUpdateExtension extends Extension.withSave(onlineUpdateSave)<OnlineUpdatePanelProps> {
   static settings = settings((s) => ({
     releasesRepo: s
@@ -92,7 +92,7 @@ export class OnlineUpdateExtension extends Extension.withSave(onlineUpdateSave)<
       const actionId = `${manifest.id}.open-panel`;
       ctx.input.registerAction({
         id: actionId,
-        label: "打开更新与在线面板",
+        label: "打开游戏更新面板",
         defaultKeys: ["KeyU"],
       });
       console.log(`[online-update] 已注册快捷键 U（action = ${actionId}）`);

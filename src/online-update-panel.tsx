@@ -232,7 +232,7 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
                 margin: 0,
               }}
             >
-              {title ?? "更新与在线"}
+              {title ?? "游戏更新"}
             </h1>
           </div>
           <button type="button" onClick={onClose} style={closeButtonStyle}>

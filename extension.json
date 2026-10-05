@@ -1,7 +1,7 @@
 {
   "id": "online-update-58685e",
   "name": "online-update",
-  "description": "统计在线人数与总玩家数，检查游戏版本更新，展示公告、更新日志与下载入口。",
+  "description": "启动自动检查新版本，弹出公告与更新日志，按玩家平台一键直达安装包。",
   "author": "Structure",
   "version": "0.1.0",
   "entry": "dist/index.mjs",
