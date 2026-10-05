@@ -49,7 +49,7 @@ var _OnlineUpdateExtension_decorators, _init, _a;
 import { useExtensionContext, defineSave, Extension, settings, extension } from "@avg-studio/sdk";
 import { jsx, jsxs } from "react/jsx-runtime";
 import { useState, useEffect, useCallback } from "react";
-const id = "online-update-58685e";
+const id = "com.structuretxwd.game-update";
 const name = "online-update";
 const description = "启动自动检查新版本，弹出公告与更新日志，按玩家平台一键直达安装包。";
 const author = "Structure";

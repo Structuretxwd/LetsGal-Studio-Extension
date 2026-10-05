@@ -29,7 +29,7 @@ import {
  * 两者都留空时，本扩展不发起任何网络请求。
  */
 
-/** 面板在剧本里的引用路径是 `<扩展id>/<模块id>`，即 online-update-58685e/panel。 */
+/** 面板在剧本里的引用路径是 `<扩展id>/<模块id>`，即 com.structuretxwd.game-update/panel。 */
 const PANEL_MODULE_ID = "panel";
 
 const onlineUpdateSave = defineSave({
