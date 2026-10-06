@@ -3,7 +3,7 @@
   "name": "游戏更新",
   "description": "启动自动检查新版本，弹出公告与更新日志，按玩家平台一键直达安装包。",
   "author": "Structure",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "entry": "dist/index.mjs",
   "sdkVersion": "^2.0.0"
 }
