@@ -46,7 +46,7 @@ var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read fr
 var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
 var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
 var _OnlineUpdateExtension_decorators, _init, _a;
-import { useExtensionContext, defineSave, Extension, settings, extension } from "@avg-studio/sdk";
+import { useExtensionContext, Extension, settings, extension } from "@avg-studio/sdk";
 import { jsx, jsxs } from "react/jsx-runtime";
 import { useState, useEffect, useCallback } from "react";
 const id = "com.structuretxwd.game-update";
@@ -223,38 +223,6 @@ function isNewerVersion(latest, current) {
   }
   return false;
 }
-function endpointBase(endpoint) {
-  return endpoint.trim().replace(/\/+$/, "");
-}
-function asCount(value) {
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
-}
-async function fetchOnlineStats(endpoint) {
-  const response = await fetch(`${endpointBase(endpoint)}/stats`, {
-    cache: "no-store"
-  });
-  if (!response.ok) {
-    throw new Error(`读取在线人数失败：HTTP ${response.status}`);
-  }
-  const raw = await response.json();
-  return { online: asCount(raw.online), total: asCount(raw.total) };
-}
-async function sendHeartbeat(endpoint, playerId) {
-  const response = await fetch(`${endpointBase(endpoint)}/heartbeat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ playerId })
-  });
-  if (!response.ok) {
-    throw new Error(`上报心跳失败：HTTP ${response.status}`);
-  }
-}
-function createPlayerId() {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
 const tokens = {
   bgStage: "#E8EAED",
   bgCard: "#FAFAF7",
@@ -290,29 +258,17 @@ function formatSize(bytes) {
   return `${unit === 0 ? value : value.toFixed(1)} ${units[unit]}`;
 }
 const OnlineUpdatePanel = ({
-  save,
   onClose,
   title
 }) => {
   const ctx = useExtensionContext();
   const [releasesRepo] = ctx.settings.useValue("releasesRepo");
   const [currentVersion] = ctx.settings.useValue("currentVersion");
-  const [statsEndpoint] = ctx.settings.useValue("statsEndpoint");
-  const [heartbeatSeconds] = ctx.settings.useValue("heartbeatSeconds");
-  const [playerId, setPlayerId] = useState(() => save.get("playerId"));
   const [reloadToken, setReloadToken] = useState(0);
   const [update, setUpdate] = useState(null);
   const [updateError, setUpdateError] = useState("");
   const [loadingUpdate, setLoadingUpdate] = useState(false);
-  const [stats, setStats] = useState(null);
-  const [statsError, setStatsError] = useState("");
   const [syncedAt, setSyncedAt] = useState("");
-  useEffect(() => {
-    if (playerId) return;
-    const created = createPlayerId();
-    save.set("playerId", created);
-    setPlayerId(created);
-  }, [playerId, save]);
   useEffect(() => {
     const url = (releasesRepo ?? "").trim();
     if (!url) {
@@ -326,6 +282,7 @@ const OnlineUpdatePanel = ({
       if (cancelled) return;
       setUpdate(info);
       setUpdateError("");
+      setSyncedAt(formatClock(/* @__PURE__ */ new Date()));
     }).catch((error) => {
       if (cancelled) return;
       setUpdate(null);
@@ -337,44 +294,12 @@ const OnlineUpdatePanel = ({
       cancelled = true;
     };
   }, [releasesRepo, reloadToken]);
-  useEffect(() => {
-    const endpoint = (statsEndpoint ?? "").trim();
-    if (!endpoint || !playerId) {
-      setStats(null);
-      setStatsError("");
-      return;
-    }
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        await sendHeartbeat(endpoint, playerId);
-        const next = await fetchOnlineStats(endpoint);
-        if (cancelled) return;
-        setStats(next);
-        setStatsError("");
-        setSyncedAt(formatClock(/* @__PURE__ */ new Date()));
-      } catch (error) {
-        if (cancelled) return;
-        setStatsError(messageOf(error));
-      }
-    };
-    void tick();
-    const interval = Math.max(15, heartbeatSeconds ?? 60) * 1e3;
-    const timer = window.setInterval(() => {
-      void tick();
-    }, interval);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [statsEndpoint, heartbeatSeconds, playerId, reloadToken]);
   const handleDownload = useCallback((url) => {
     window.open(url, "_blank", "noopener,noreferrer");
   }, []);
   const version2 = (currentVersion ?? "").trim() || DEFAULT_CURRENT_VERSION;
   const latest = (update == null ? void 0 : update.latestVersion) ?? "";
   const hasUpdate = update !== null && isNewerVersion(latest, version2);
-  const statsReady = (statsEndpoint ?? "").trim().length > 0;
   const downloadLabel = hasUpdate ? "前往下载新版本" : (update == null ? void 0 : update.downloadKind) === "asset" ? "重新下载" : "前往下载页";
   return /* @__PURE__ */ jsx(
     "div",
@@ -440,33 +365,15 @@ const OnlineUpdatePanel = ({
               }
             ),
             /* @__PURE__ */ jsxs("div", { style: { padding: "0 48px 40px", overflowY: "auto" }, children: [
-              /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 18, marginBottom: 28 }, children: [
-                /* @__PURE__ */ jsx(
-                  StatCard,
-                  {
-                    label: "当前在线",
-                    value: stats ? String(stats.online) : "—",
-                    hint: statsReady ? void 0 : "暂不支持"
-                  }
-                ),
-                /* @__PURE__ */ jsx(
-                  StatCard,
-                  {
-                    label: "累计玩家",
-                    value: stats ? String(stats.total) : "—",
-                    hint: statsReady ? void 0 : "暂不支持"
-                  }
-                ),
-                /* @__PURE__ */ jsx(
-                  VersionCard,
-                  {
-                    current: version2,
-                    latest: latest || "未知",
-                    hasUpdate,
-                    loading: loadingUpdate
-                  }
-                )
-              ] }),
+              /* @__PURE__ */ jsx("div", { style: { marginBottom: 28 }, children: /* @__PURE__ */ jsx(
+                VersionCard,
+                {
+                  current: version2,
+                  latest: latest || "未知",
+                  hasUpdate,
+                  loading: loadingUpdate
+                }
+              ) }),
               (update == null ? void 0 : update.downloadUrl) && /* @__PURE__ */ jsx(
                 DownloadCta,
                 {
@@ -479,10 +386,6 @@ const OnlineUpdatePanel = ({
                   onDownload: handleDownload
                 }
               ),
-              statsError && /* @__PURE__ */ jsxs(Notice, { tone: "warn", children: [
-                "在线统计读取失败：",
-                statsError
-              ] }),
               updateError && /* @__PURE__ */ jsxs(Notice, { tone: "warn", children: [
                 "更新信息读取失败：",
                 updateError
@@ -647,29 +550,6 @@ function Eyebrow({ children }) {
     }
   );
 }
-function StatCard({
-  label,
-  value,
-  hint
-}) {
-  return /* @__PURE__ */ jsxs(
-    "div",
-    {
-      style: {
-        flex: 1,
-        background: tokens.bgSub,
-        border: `1px solid ${tokens.hair}`,
-        borderRadius: 14,
-        padding: "18px 22px"
-      },
-      children: [
-        /* @__PURE__ */ jsx("div", { style: { fontSize: 13, color: tokens.fgMuted, marginBottom: 8 }, children: label }),
-        /* @__PURE__ */ jsx("div", { style: { fontSize: 40, fontWeight: 500, lineHeight: 1.1, letterSpacing: "-0.02em" }, children: value }),
-        hint && /* @__PURE__ */ jsx("div", { style: { fontSize: 12.5, color: tokens.fgMuted, marginTop: 6 }, children: hint })
-      ]
-    }
-  );
-}
 function VersionCard({
   current,
   latest,
@@ -682,7 +562,6 @@ function VersionCard({
     "div",
     {
       style: {
-        flex: 1,
         background: tokens.bgSub,
         border: `1px solid ${tokens.hair}`,
         borderRadius: 14,
@@ -908,19 +787,10 @@ const ghostButtonStyle = {
   fontFamily: "inherit"
 };
 const PANEL_MODULE_ID = "panel";
-const onlineUpdateSave = defineSave({
-  playerId: {
-    type: "string",
-    persistence: "shared",
-    default: "",
-    label: "本机玩家标识（在线统计用，跨存档保持不变）"
-  }
-});
 _OnlineUpdateExtension_decorators = [extension({ id: PANEL_MODULE_ID, label: "游戏更新" })];
-let _OnlineUpdateExtension = class _OnlineUpdateExtension extends (_a = Extension.withSave(onlineUpdateSave)) {
+let _OnlineUpdateExtension = class _OnlineUpdateExtension extends (_a = Extension) {
   /**
    * 启动期钩子：注册全局快捷键 + 可选的一次更新检查。
-   * 这里是静态方法，拿不到 this.save，因此心跳/在线统计只能发生在面板打开期间。
    */
   static async onRegister(ctx) {
     console.log("[online-update] onRegister 已执行");
@@ -954,7 +824,6 @@ let _OnlineUpdateExtension = class _OnlineUpdateExtension extends (_a = Extensio
       component: OnlineUpdatePanel,
       props: {
         ...this.data ?? {},
-        save: this.save,
         onClose: () => this.close()
       }
     };
@@ -968,9 +837,7 @@ _OnlineUpdateExtension.settings = settings((s) => ({
   ),
   currentVersion: s.string("当前游戏版本").default(DEFAULT_CURRENT_VERSION).describe("本作品当前发布的版本号，与最新 Release 的 tag 比较（v 前缀可省略）"),
   checkOnLaunch: s.boolean("启动时自动检查更新").default(true),
-  autoOpenOnUpdate: s.boolean("发现新版本时自动打开面板").default(true).enabledWhen("checkOnLaunch"),
-  statsEndpoint: s.string("在线统计服务地址").default("").describe("自建统计服务的根地址，例如 https://example.workers.dev；留空则不统计在线人数"),
-  heartbeatSeconds: s.number("心跳与刷新间隔（秒）").default(60).range(15, 600)
+  autoOpenOnUpdate: s.boolean("发现新版本时自动打开面板").default(true).enabledWhen("checkOnLaunch")
 }));
 __runInitializers(_init, 1, _OnlineUpdateExtension);
 let OnlineUpdateExtension = _OnlineUpdateExtension;

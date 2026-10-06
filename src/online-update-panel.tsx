@@ -2,28 +2,15 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   useExtensionContext,
   type ExtensionProps,
-  type SaveAPI,
 } from "@avg-studio/sdk";
 import {
   DEFAULT_CURRENT_VERSION,
-  createPlayerId,
-  fetchOnlineStats,
   fetchUpdateInfo,
   isNewerVersion,
-  sendHeartbeat,
-  type OnlineStats,
   type UpdateInfo,
 } from "./remote-api";
 
-/**
- * 由 index.tsx 的 render() 注入的存档代理。
- * 形状与 defineSave 声明一致：只需 playerId 一个字段。
- */
-export type PanelSave = SaveAPI<{ playerId: string }>;
-
 export interface OnlineUpdatePanelProps extends ExtensionProps {
-  /** 实例侧强类型存档代理，render() 注入。 */
-  save: PanelSave;
   /** 关闭本面板，render() 注入。 */
   onClose: () => void;
   /** 面板大标题；剧本「显示界面」可以覆盖。 */
@@ -72,34 +59,19 @@ function formatSize(bytes?: number): string {
 }
 
 export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
-  save,
   onClose,
   title,
 }) => {
   const ctx = useExtensionContext();
   const [releasesRepo] = ctx.settings.useValue<string>("releasesRepo");
   const [currentVersion] = ctx.settings.useValue<string>("currentVersion");
-  const [statsEndpoint] = ctx.settings.useValue<string>("statsEndpoint");
-  const [heartbeatSeconds] = ctx.settings.useValue<number>("heartbeatSeconds");
 
-  const [playerId, setPlayerId] = useState<string>(() => save.get("playerId"));
   const [reloadToken, setReloadToken] = useState(0);
 
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
   const [updateError, setUpdateError] = useState("");
   const [loadingUpdate, setLoadingUpdate] = useState(false);
-
-  const [stats, setStats] = useState<OnlineStats | null>(null);
-  const [statsError, setStatsError] = useState("");
   const [syncedAt, setSyncedAt] = useState("");
-
-  // 首次进入时生成并持久化本机玩家标识；shared 作用域让它跨存档保持不变。
-  useEffect(() => {
-    if (playerId) return;
-    const created = createPlayerId();
-    save.set("playerId", created);
-    setPlayerId(created);
-  }, [playerId, save]);
 
   // 读取更新信息。
   useEffect(() => {
@@ -116,6 +88,7 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
         if (cancelled) return;
         setUpdate(info);
         setUpdateError("");
+        setSyncedAt(formatClock(new Date()));
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -130,41 +103,6 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
     };
   }, [releasesRepo, reloadToken]);
 
-  // 面板打开期间：按间隔上报心跳并刷新在线人数。
-  useEffect(() => {
-    const endpoint = (statsEndpoint ?? "").trim();
-    if (!endpoint || !playerId) {
-      setStats(null);
-      setStatsError("");
-      return;
-    }
-    let cancelled = false;
-
-    const tick = async () => {
-      try {
-        await sendHeartbeat(endpoint, playerId);
-        const next = await fetchOnlineStats(endpoint);
-        if (cancelled) return;
-        setStats(next);
-        setStatsError("");
-        setSyncedAt(formatClock(new Date()));
-      } catch (error: unknown) {
-        if (cancelled) return;
-        setStatsError(messageOf(error));
-      }
-    };
-
-    void tick();
-    const interval = Math.max(15, heartbeatSeconds ?? 60) * 1000;
-    const timer = window.setInterval(() => {
-      void tick();
-    }, interval);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [statsEndpoint, heartbeatSeconds, playerId, reloadToken]);
-
   const handleDownload = useCallback((url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
   }, []);
@@ -172,7 +110,6 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
   const version = (currentVersion ?? "").trim() || DEFAULT_CURRENT_VERSION;
   const latest = update?.latestVersion ?? "";
   const hasUpdate = update !== null && isNewerVersion(latest, version);
-  const statsReady = (statsEndpoint ?? "").trim().length > 0;
   // 按钮文案跟着「跳到安装包」还是「跳到页面」走，别让玩家以为要去下一份文件。
   const downloadLabel = hasUpdate
     ? "前往下载新版本"
@@ -241,17 +178,7 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
         </header>
 
         <div style={{ padding: "0 48px 40px", overflowY: "auto" }}>
-          <div style={{ display: "flex", gap: 18, marginBottom: 28 }}>
-            <StatCard
-              label="当前在线"
-              value={stats ? String(stats.online) : "—"}
-              hint={statsReady ? undefined : "暂不支持"}
-            />
-            <StatCard
-              label="累计玩家"
-              value={stats ? String(stats.total) : "—"}
-              hint={statsReady ? undefined : "暂不支持"}
-            />
+          <div style={{ marginBottom: 28 }}>
             <VersionCard
               current={version || "未填写"}
               latest={latest || "未知"}
@@ -272,7 +199,6 @@ export const OnlineUpdatePanel: React.FC<OnlineUpdatePanelProps> = ({
             />
           )}
 
-          {statsError && <Notice tone="warn">在线统计读取失败：{statsError}</Notice>}
           {updateError && <Notice tone="warn">更新信息读取失败：{updateError}</Notice>}
 
           {update?.announcement && (
@@ -439,34 +365,6 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
-function StatCard({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div
-      style={{
-        flex: 1,
-        background: tokens.bgSub,
-        border: `1px solid ${tokens.hair}`,
-        borderRadius: 14,
-        padding: "18px 22px",
-      }}
-    >
-      <div style={{ fontSize: 13, color: tokens.fgMuted, marginBottom: 8 }}>{label}</div>
-      <div style={{ fontSize: 40, fontWeight: 500, lineHeight: 1.1, letterSpacing: "-0.02em" }}>
-        {value}
-      </div>
-      {hint && <div style={{ fontSize: 12.5, color: tokens.fgMuted, marginTop: 6 }}>{hint}</div>}
-    </div>
-  );
-}
-
 function VersionCard({
   current,
   latest,
@@ -483,7 +381,6 @@ function VersionCard({
   return (
     <div
       style={{
-        flex: 1,
         background: tokens.bgSub,
         border: `1px solid ${tokens.hair}`,
         borderRadius: 14,

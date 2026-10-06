@@ -1,6 +1,5 @@
 import {
   Extension,
-  defineSave,
   extension,
   settings,
   type ExtensionContext,
@@ -21,25 +20,15 @@ import {
  * 扩展入口。
  *
  * 一个类 = 一个子模块：UI（render）、启动期行为（onRegister）、项目设置
- * （settings）、玩家存档（withSave）全在同一个类上。
+ * （settings）全在同一个类上。
  *
- * 数据来源有两处，都由创作者在 Studio 的扩展设置里配置：
- *   - releasesRepo  : 发布 Release 的公开仓库（版本号 / 更新日志 / 下载入口）
- *   - statsEndpoint : 自建统计服务的根地址（在线人数 / 累计玩家）
- * 两者都留空时，本扩展不发起任何网络请求。
+ * 数据来源只有一处，由创作者在 Studio 的扩展设置里配置：
+ *   - releasesRepo : 发布 Release 的公开仓库（版本号 / 更新日志 / 下载入口）
+ * 留空时，本扩展不发起任何网络请求。
  */
 
 /** 面板在剧本里的引用路径是 `<扩展id>/<模块id>`，即 com.structuretxwd.game-update/panel。 */
 const PANEL_MODULE_ID = "panel";
-
-const onlineUpdateSave = defineSave({
-  playerId: {
-    type: "string",
-    persistence: "shared",
-    default: "",
-    label: "本机玩家标识（在线统计用，跨存档保持不变）",
-  },
-});
 
 /**
  * 注意：这里**不能**加 `autonomous: true`。
@@ -51,7 +40,7 @@ const onlineUpdateSave = defineSave({
  * 本项目要靠 ctx.ui.show("panel") 弹面板，所以必须保持默认（false）。
  */
 @extension({ id: PANEL_MODULE_ID, label: "游戏更新" })
-export class OnlineUpdateExtension extends Extension.withSave(onlineUpdateSave)<OnlineUpdatePanelProps> {
+export class OnlineUpdateExtension extends Extension<OnlineUpdatePanelProps> {
   static settings = settings((s) => ({
     releasesRepo: s
       .string("GitHub 仓库（owner/repo）")
@@ -68,19 +57,10 @@ export class OnlineUpdateExtension extends Extension.withSave(onlineUpdateSave)<
       .boolean("发现新版本时自动打开面板")
       .default(true)
       .enabledWhen("checkOnLaunch"),
-    statsEndpoint: s
-      .string("在线统计服务地址")
-      .default("")
-      .describe("自建统计服务的根地址，例如 https://example.workers.dev；留空则不统计在线人数"),
-    heartbeatSeconds: s
-      .number("心跳与刷新间隔（秒）")
-      .default(60)
-      .range(15, 600),
   }));
 
   /**
    * 启动期钩子：注册全局快捷键 + 可选的一次更新检查。
-   * 这里是静态方法，拿不到 this.save，因此心跳/在线统计只能发生在面板打开期间。
    */
   static async onRegister(ctx: ExtensionContext): Promise<void> {
     // 第一行就无条件打日志。
@@ -122,7 +102,6 @@ export class OnlineUpdateExtension extends Extension.withSave(onlineUpdateSave)<
       component: OnlineUpdatePanel,
       props: {
         ...(this.data ?? {}),
-        save: this.save,
         onClose: () => this.close(),
       },
     };

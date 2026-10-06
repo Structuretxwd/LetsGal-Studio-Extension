@@ -1,5 +1,5 @@
 /**
- * 远端取数：更新信息（GitHub Releases）与在线统计（自建统计服务）。
+ * 远端取数：更新信息（GitHub Releases）。
  *
  * 这里只做「发请求 + 校验外部数据形状」，不碰 React、不碰扩展上下文，
  * 因此 onRegister 的启动检查和面板里的手动刷新可以复用同一份逻辑。
@@ -36,11 +36,6 @@ export interface UpdateInfo {
   assetSize?: number;
   announcement?: string;
   changelog: UpdateEntry[];
-}
-
-export interface OnlineStats {
-  online: number;
-  total: number;
 }
 
 /** 一次取多少个 Release 作为更新日志的历史长度。 */
@@ -283,48 +278,4 @@ export function isNewerVersion(latest: string, current: string): boolean {
     if (a !== b) return a > b;
   }
   return false;
-}
-
-function endpointBase(endpoint: string): string {
-  return endpoint.trim().replace(/\/+$/, "");
-}
-
-function asCount(value: unknown): number {
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
-}
-
-export async function fetchOnlineStats(endpoint: string): Promise<OnlineStats> {
-  const response = await fetch(`${endpointBase(endpoint)}/stats`, {
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error(`读取在线人数失败：HTTP ${response.status}`);
-  }
-  const raw = (await response.json()) as Record<string, unknown>;
-  return { online: asCount(raw.online), total: asCount(raw.total) };
-}
-
-export async function sendHeartbeat(
-  endpoint: string,
-  playerId: string,
-): Promise<void> {
-  const response = await fetch(`${endpointBase(endpoint)}/heartbeat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ playerId }),
-  });
-  if (!response.ok) {
-    throw new Error(`上报心跳失败：HTTP ${response.status}`);
-  }
-}
-
-/**
- * 生成本机玩家标识。用 getRandomValues 而不是 randomUUID ——
- * 后者要求安全上下文，打包后的 Player 可能从 file:// 加载。
- */
-export function createPlayerId(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
