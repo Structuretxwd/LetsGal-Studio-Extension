@@ -50,7 +50,7 @@ import { useExtensionContext, defineSave, Extension, settings, extension } from 
 import { jsx, jsxs } from "react/jsx-runtime";
 import { useState, useEffect, useCallback } from "react";
 const id = "com.structuretxwd.game-update";
-const name = "online-update";
+const name = "游戏更新";
 const description = "启动自动检查新版本，弹出公告与更新日志，按玩家平台一键直达安装包。";
 const author = "Structure";
 const version = "0.1.0";

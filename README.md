@@ -1,14 +1,14 @@
 <div align="center">
 
-# online-update
+# 游戏更新
 
 **在游戏内检查版本更新，展示公告、更新日志与下载入口**
 
 [![Studio SDK](https://img.shields.io/badge/Studio%20SDK-%5E2.0.0-6E56CF?style=flat-square)](https://docs.avg-engine.com/extensions/intro)
 [![版本](https://img.shields.io/badge/version-0.1.0-7E9650?style=flat-square)](./extension.json)
-[![扩展 ID](https://img.shields.io/badge/extension%20id-online--update--58685e-E5675A?style=flat-square)](./extension.json)
+[![扩展 ID](https://img.shields.io/badge/extension%20id-com.structuretxwd.game--update-E5675A?style=flat-square)](./extension.json)
 [![数据源](https://img.shields.io/badge/data-GitHub%20Releases-1A1A1A?style=flat-square)](#数据来源release-怎么写)
-[![后端](https://img.shields.io/badge/backend-%E6%97%A0-57564F?style=flat-square)](#在线统计预留)
+[![后端](https://img.shields.io/badge/backend-%E6%97%A0-57564F?style=flat-square)](#已知限制)
 
 </div>
 
@@ -16,16 +16,30 @@
 
 玩家不会主动去翻你的发布页。把「有新版本了」这件事直接送到游戏里，是成本最低的做法。
 
-`online-update` 把更新检查做进游戏本身：引擎一启动就静默比对一次版本，发现有新版就在游戏内弹出面板，玩家点一下就能去下载。更新数据放在 GitHub Releases 里，**不需要自建任何服务器**。
+**游戏更新** 把更新检查做进游戏本身：引擎一启动就静默比对一次版本，发现有新版就在游戏内弹出面板，玩家点一下就能去下载。更新数据放在 GitHub Releases 里，**不需要自建任何服务器**。
+
+## 效果预览
+
+**① 游戏内更新面板** —— 检测到新版本时自动弹出，展示版本对比、公告、更新日志，以及一键直达的下载入口。
+
+![游戏内更新面板](./docs/screenshot-panel.png)
+
+**② 扩展设置** —— 在 Studio 里填入 GitHub 仓库与当前版本号，配置随作品一起打包，玩家侧不需要任何操作。
+
+![扩展设置面板](./docs/screenshot-settings.png)
+
+**③ 发布 Release** —— 在公开仓库的 Release 里上传安装包，面板会自动把标题当公告、正文当更新日志。
+
+![GitHub Release 页面](./docs/screenshot-release.png)
 
 ## 目录
 
+- [效果预览](#效果预览)
 - [能力一览](#能力一览)
-- [工作流程](#工作流程)
-- [快速开始](#快速开始)
+- [使用说明](#使用说明)
 - [配置项](#配置项)
 - [数据来源：Release 怎么写](#数据来源release-怎么写)
-- [在线统计（预留）](#在线统计预留)
+- [在线统计（预留，当前未启用）](#在线统计预留当前未启用)
 - [剧本与快捷键](#剧本与快捷键)
 - [目录结构](#目录结构)
 - [本地开发](#本地开发)
@@ -107,36 +121,88 @@ sequenceDiagram
     E->>P: 浏览器打开安装包直链（挑不出安装包则打开 Release 页面）
 ```
 
-## 快速开始
+## 使用说明
 
-### 1. 导入扩展
+配置一共 5 步，全程只需要一个公开仓库，不需要服务器、域名或数据库。
+
+### 一、配置方法
+
+#### 1. 导入扩展
 
 在 Studio 打开 **个性化 → 项目设置**，在左侧扩展树顶部点「导入扩展」，选择本目录或 `.zip` 压缩包（也可以直接把文件夹拖进扩展树）。
 
-本仓库已经把 `dist/index.mjs` 一起提交，**导入后即可使用，不需要先 `npm install`**。
+本仓库已经把 `dist/index.mjs` 一起提交，**导入后即可使用，不需要先执行 `npm install`**。
 
-### 2. 准备一个发布 Release 的公开仓库
+#### 2. 准备一个发布 Release 的公开仓库
 
 新建（或复用一个）**公开**仓库，专门用来发布版本。仓库里不需要放任何代码，能打 Release 即可。
 
-### 3. 在 Studio 里填设置
+> 必须是公开仓库：扩展通过 GitHub 的公开 API 读取 Release，私有仓库会返回 404。
 
-在扩展树中选中 **com.structuretxwd.game-update → 程序 → 游戏更新**，然后在设置面板里填写下面的字段。至少需要填「GitHub 仓库」。
+#### 3. 发布第一个 Release
 
-### 4. 验证
+在仓库的 **Releases → Draft a new release** 里填写：
 
-把「当前游戏版本」填成一个比最新 Release 更小的值，重新运行预览，面板应当自动弹出。
+| 字段 | 作用 |
+|---|---|
+| **Tag** | 版本号，如 `v0.2.0`。`v` 前缀可省略，面板会自动去掉 |
+| **Release title** | 面板里的「公告」。与 tag 完全相同时不显示，避免重复 |
+| **Describe this release** | 面板里的「更新日志」。每行一条，Markdown 的 `#`、`-`、`*`、`1.` 前缀会被自动清理 |
+| **Attach binaries** | 安装包本体。**必须上传**，否则「前往下载」只能落到 Release 页面 |
 
-无论有没有新版，每次检查都会在**扩展日志**里留一行，所以「检查过了」和「根本没跑」是可以分辨的：
+安装包建议这样命名，扩展才能按玩家平台自动挑对文件：
+
+```
+game-windows.exe    ← Windows 玩家拿到这个
+game-android.apk    ← Android 玩家拿到这个
+```
+
+> ⚠️ **不要两个平台都打包成 `.zip`。** 后缀相同会导致扩展无法区分平台，只能退回 Release 页面让玩家自己选。
+
+#### 4. 在 Studio 里填设置
+
+在扩展树中选中 **com.structuretxwd.game-update → 程序 → 游戏更新**，至少填写这两项：
+
+| 设置项 | 填什么 | 示例 |
+|---|---|---|
+| GitHub 仓库 | 第 2 步创建的公开仓库 | `Structuretxwd/LetsGal-Studio-Extension` |
+| 当前游戏版本 | 本作品**当前已发布**的版本号 | `0.1.0` |
+
+其余设置保持默认即可，完整说明见[配置项](#配置项)。
+
+> ⚠️ **「当前游戏版本」必须随每次发版同步更新。** 只有它低于最新 Release 才会提示更新 —— 忘了改，玩家就永远收不到提示。
+
+#### 5. 验证配置
+
+把「当前游戏版本」填成**小于**最新 Release 的值，重新运行预览，面板应当自动弹出。
+
+无论有没有新版本，每次检查都会在 **Studio 底部的扩展日志**里留一行，「检查过了」和「根本没跑」是可以分辨的：
 
 ```
 [online-update] 发现新版本 0.2.0（当前 0.1.0）
 [online-update] 已是最新版本 0.1.0（当前 0.1.0）
 ```
 
-两行都没有，说明检查根本没有执行 —— 从[配置项](#配置项)逐条检查，绝大多数情况是仓库标识写错、`releasesRepo` 留空，或者仓库还没有正式 Release。
+一行都没有，说明检查根本没有执行 —— 绝大多数情况是仓库标识写错、`releasesRepo` 留空，或者仓库还没有正式 Release。
 
 **反向验证**：把「当前游戏版本」改成一个高于最新 Release 的值，重启后应当**不弹面板**，日志显示「已是最新版本」。这一步用来确认版本比较真的生效，而不是无条件弹窗。
+
+### 二、玩家侧的使用方法
+
+玩家**不需要做任何配置** —— 设置随作品一起打包进游戏。
+
+| 时机 | 玩家的体验 |
+|---|---|
+| 启动游戏 | 引擎静默检查一次版本，已是最新版时完全无感 |
+| 有新版本 | 面板自动弹出，显示版本对比、公告、更新日志和下载按钮 |
+| 想主动查看 | 按 `U` 随时唤出面板；已是最新版的玩家也能用它翻看更新日志 |
+| 点击下载 | 自动识别平台，浏览器直接开始下载对应的 `.exe` / `.apk` |
+
+### 三、在剧本里调用（可选）
+
+面板同时注册为一个可显示的界面，引用路径为 `com.structuretxwd.game-update/panel`。在剧本里使用「显示界面」指令并选中「游戏更新」，就能让它在指定剧情节点出现；该指令可以覆盖面板标题。
+
+> 更新检查**不依赖**这条指令 —— 它在引擎启动期就已经跑完了。这条指令只是给玩家一个主动查看更新日志的入口，按需使用。
 
 ## 配置项
 
@@ -214,7 +280,7 @@ https://github.com/owner/repo/releases/download/v0.2.0/game.exe
 
 > **注意**：匹配只看文件后缀，**不区分 CPU 架构**。如果你的命名里带架构（如 `game-win-x64.exe` 与 `game-win-arm64.exe` 并存），扩展会取列表中靠前的那个。这种情况建议只上传一个架构的包，或改用 Release 页面兜底。
 
-## 在线统计（预留）
+## 在线统计（预留，当前未启用）
 
 面板顶部的两张统计卡需要一个自建的统计服务，当前项目**没有提供可用后端**，`statsEndpoint` 留空时它们显示 `—`，这是预期行为。
 
