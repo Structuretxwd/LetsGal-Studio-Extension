@@ -5,7 +5,7 @@
 **在游戏内检查版本更新，展示公告、更新日志与下载入口**
 
 [![Studio SDK](https://img.shields.io/badge/Studio%20SDK-%5E2.0.0-6E56CF?style=flat-square)](https://docs.avg-engine.com/extensions/intro)
-[![版本](https://img.shields.io/badge/version-0.2.0-7E9650?style=flat-square)](./extension.json)
+[![版本](https://img.shields.io/badge/version-0.2.1-7E9650?style=flat-square)](./extension.json)
 [![扩展 ID](https://img.shields.io/badge/extension%20id-com.structuretxwd.game--update-E5675A?style=flat-square)](./extension.json)
 [![数据源](https://img.shields.io/badge/data-GitHub%20Releases-1A1A1A?style=flat-square)](#数据来源release-怎么写)
 [![后端](https://img.shields.io/badge/backend-%E6%97%A0-57564F?style=flat-square)](#已知限制)
